@@ -6,6 +6,7 @@
 function renderDealsTable(SQLite3Result $rs, int $page)
 {
     file_put_contents('php://stdout'," [INFO] Запуск renderDealsTable\n");
+
     echo '<h1>Сделки валютного рынка ММВБ</h1>';
     echo '<p><a href="?reload=1">Перезагрузить данные</a></p>';
 

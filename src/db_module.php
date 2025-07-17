@@ -5,6 +5,7 @@ namespace App;
 use SQLite3;
 use SQLite3Stmt;
 use SQLite3Result;
+use Exception;
 
 /**
  * Модуль работы с базой SQLite3.
@@ -16,14 +17,15 @@ class Database {
     /**
      * Инициализирует схему: удаляет старую таблицу и создаёт новую.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public static function initSchema()
     {
         file_put_contents('php://stdout'," [INFO] Запуск initSchema\n");
         $db = self::getInstance();
         if (!$db->exec('DROP TABLE IF EXISTS deals')) {
-            throw new \Exception('Не удалось дропнуть таблицу deals: ' . $db->lastErrorMsg());
+            file_put_contents('php://stdout'," [INFO] Не удалось дропнуть таблицу deals\n");
+            throw new Exception('Не удалось дропнуть таблицу deals: ' . $db->lastErrorMsg());
         }
         $create =
             'CREATE TABLE IF NOT EXISTS deals (' .
@@ -36,8 +38,10 @@ class Database {
             '   price       REAL,' .
             '   volume      INTEGER' .
             ')';
+
         if (!$db->exec($create)) {
-            throw new \Exception('Не удалось создать таблицу deals: ' . $db->lastErrorMsg());
+            file_put_contents('php://stdout'," [INFO] Не удалось создать таблицу deals\n");
+            throw new Exception('Не удалось создать таблицу deals: ' . $db->lastErrorMsg());
         }
     }
 
@@ -45,22 +49,27 @@ class Database {
      * Подготавливает и кэширует INSERT-запрос.
      *
      * @return SQLite3Stmt
-     * @throws \Exception
+     * @throws Exception
      */
     private static function prepareInsert(): SQLite3Stmt
     {
         $db = self::getInstance();
+
         static $stmt = null;
+
         if ($stmt === null) {
             $sql = 'INSERT INTO deals ' .
                 '(no, seccode, buysell, trade_time, orderno, action, price, volume) ' .
                 'VALUES (:no, :seccode, :buysell, :trade_time, :orderno, :action, :price, :volume)';
+
             $stmt = $db->prepare($sql);
+
             if ($stmt === false) {
-                throw new \Exception('Failed to prepare insert: ' . $db->lastErrorMsg());
-                file_put_contents('php://stdout'," [INFO] Failed to prepare insert\n");
+                file_put_contents('php://stdout'," [INFO] Не удалось подготовить INSERT\n");
+                throw new Exception('Не удалось подготовить INSERT: ' . $db->lastErrorMsg());
             }
         }
+
         return $stmt;
     }
 
@@ -68,7 +77,7 @@ class Database {
      * Вставляет одну запись в таблицу deals.
      *
      * @param array $row ['no'=>int, 'seccode'=>string, 'buysell'=>string, 'trade_time'=>string, 'orderno'=>int, 'action'=>int, 'price'=>float, 'volume'=>int]
-     * @throws \Exception
+     * @throws Exception
      */
     public static function insertRow(array $row)
     {
@@ -84,9 +93,10 @@ class Database {
 
         $res = $stmt->execute();
         if ($res === false) {
-            throw new \Exception('Insert failed: ' . self::getInstance()->lastErrorMsg());
-            file_put_contents('php://stdout'," [INFO] Insert failed\n");
+            file_put_contents('php://stdout'," [INFO] Ошибка вставки\n");
+            throw new Exception('Ошибка вставки: ' . self::getInstance()->lastErrorMsg());
         }
+
         $res->finalize();
     }
 
@@ -94,11 +104,11 @@ class Database {
      * Возвращает singleton-экземпляр подключения к базе данных SQLite3.
      *
      * @return SQLite3 Экземпляр подключения к базе данных
-     * @throws \RuntimeException В случае ошибки открытия базы данных
      */
     public static function getInstance(): SQLite3
     {
         $dbPath = __DIR__ . '/../data/database.sqlite';
+
         if (self::$instance === null) {
             // … открываем файл и busyTimeout …
             $db = new SQLite3($dbPath);
@@ -110,6 +120,7 @@ class Database {
 
             self::$instance = $db;
         }
+
         return self::$instance;
     }
 
@@ -131,7 +142,7 @@ class Database {
      * @param int $limit
      * @param int $offset
      * @return SQLite3Result
-     * @throws \Exception
+     * @throws Exception
      */
     public static function fetchDeals(int $limit, int $offset): SQLite3Result
     {
@@ -143,12 +154,16 @@ class Database {
         if ($stmt === false) {
             throw new Exception('Failed to prepare fetch: ' . $db->lastErrorMsg());
         }
+
         $stmt->bindValue(':limit',  $limit,  SQLITE3_INTEGER);
         $stmt->bindValue(':offset', $offset, SQLITE3_INTEGER);
         $res = $stmt->execute();
+
         if ($res === false) {
-            throw new Exception('Fetch failed: ' . $db->lastErrorMsg());
+            file_put_contents('php://stdout'," [INFO] fetchDeals не выполнился\n");
+            throw new Exception('fetchDeals не выполнился: ' . $db->lastErrorMsg());
         }
+
         return $res;
     }
 }

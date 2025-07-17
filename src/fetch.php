@@ -1,4 +1,5 @@
 <?php
+
 set_time_limit(300);
 
 require __DIR__ . '/unpacker.php';
@@ -28,4 +29,5 @@ loadCsvToDatabase($csvFile);
 $tempDir = dirname($csvFile);
 array_map('unlink', glob("$tempDir/*"));
 rmdir($tempDir);
+
 header('Location: /');
